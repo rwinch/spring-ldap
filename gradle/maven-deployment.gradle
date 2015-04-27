@@ -8,6 +8,17 @@ def customizePom(pom, gradleProject) {
     def isWar = project.hasProperty('war')
     def projectName = gradleProject.name
 
+    pom.whenConfigured { p ->
+        p.dependencies.findAll{ it.scope == "optional" }.each {
+            it.scope = "compile"
+            it.optional = true
+        }
+        // sort to make pom dependencies order consistent to ease comparison of older poms
+        p.dependencies = p.dependencies.sort { dep ->
+            "$dep.scope:$dep.optional:$dep.groupId:$dep.artifactId"
+        }
+    }
+
     pom.project {
         name = projectName
         if(isWar) {
@@ -81,39 +92,33 @@ def customizePom(pom, gradleProject) {
                 }
             }
         }
+    }
 
-        build {
-            plugins {
-                plugin {
-                    groupId = 'org.apache.maven.plugins'
-                    artifactId = 'maven-compiler-plugin'
-                    configuration {
-                        source = '1.6'
-                        target = '1.6'
-                    }
-                }
-                if(isWar) {
-                    plugin {
-                        groupId = 'org.apache.maven.plugins'
-                        artifactId = 'maven-war-plugin'
-                        version = '2.3'
-                        configuration {
-                            failOnMissingWebXml = 'false'
-                        }
-                    }
+    // http://forums.gradle.org/gradle/topics/after_upgrade_gradle_to_2_0_version_the_maven_pom_not_support_build_property
+    pom.withXml {
+        def plugins = asNode().appendNode('build').appendNode('plugins')
+        plugins
+            .appendNode('plugin')
+                .appendNode('artifactId','maven-compiler-plugin').parent()
+                .appendNode('configuration')
+                    .appendNode('source', '1.6').parent()
+                    .appendNode('target','1.6')
 
-                    plugin {
-                        groupId = 'org.mortbay.jetty'
-                        artifactId = 'jetty-maven-plugin'
-                        version = '8.1.14.v20131031'
-                        configuration {
-                            webAppConfig {
-                                contextPath = "/" + projectName
-                            }
-                        }
-                    }
-                }
-            }
+        if(isWar) {
+            plugins
+                .appendNode('plugin')
+                    .appendNode('artifactId','maven-war-plugin').parent()
+                    .appendNode('version','2.3').parent()
+                    .appendNode('configuration')
+                        .appendNode('failOnMissingWebXml','false')
+            plugins
+                    .appendNode('plugin')
+                    .appendNode('groupId','org.mortbay.jetty').parent()
+                    .appendNode('artifactId','jetty-maven-plugin').parent()
+                    .appendNode('version','8.1.14.v20131031').parent()
+                    .appendNode('configuration')
+                    .appendNode('webAppConfig')
+                    .appendNode('contextPath',"/" + projectName)
         }
     }
 }
