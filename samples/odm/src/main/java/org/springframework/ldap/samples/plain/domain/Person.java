@@ -48,6 +48,17 @@ public class Person {
     @Attribute(name = "description")
     private String description;
 
+    @Attribute(name = "modifyTimestamp")
+    private String modifyTimestamp;
+
+    public String getModifyTimestamp() {
+        return modifyTimestamp;
+    }
+
+    public void setModifyTimestamp(String modifyTimestamp) {
+        this.modifyTimestamp = modifyTimestamp;
+    }
+
     @Transient
     @DnAttribute(value = "c", index = 0)
     private String country;

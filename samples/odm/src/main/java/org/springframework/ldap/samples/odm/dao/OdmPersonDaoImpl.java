@@ -15,47 +15,49 @@
  */
 package org.springframework.ldap.samples.odm.dao;
 
+import static org.springframework.ldap.query.LdapQueryBuilder.query;
+
+import java.util.List;
+
+import javax.naming.NamingException;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.SearchControls;
+import javax.naming.ldap.LdapName;
+
 import org.springframework.ldap.core.AttributesMapper;
 import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.samples.plain.dao.PersonDao;
 import org.springframework.ldap.samples.plain.domain.Person;
 import org.springframework.ldap.support.LdapNameBuilder;
 
-import javax.naming.NamingException;
-import javax.naming.directory.Attributes;
-import javax.naming.ldap.LdapName;
-import java.util.List;
-
-import static org.springframework.ldap.query.LdapQueryBuilder.query;
-
 /**
  * Default implementation of PersonDao. This implementation uses the Object-Directory Mapping feature,
  * which requires the entity classes to be annotated, but relieves the programmer from the tedious
  * task of mapping to and from entity objects, using attribute or dn component values.
- * 
+ *
  * @author Mattias Hellborg Arthursson
  */
 public class OdmPersonDaoImpl implements PersonDao {
 
-	private LdapTemplate ldapTemplate;
+    private LdapTemplate ldapTemplate;
 
     @Override
-	public void create(Person person) {
-		ldapTemplate.create(person);
-	}
+    public void create(Person person) {
+        ldapTemplate.create(person);
+    }
 
     @Override
-	public void update(Person person) {
-		ldapTemplate.update(person);
-	}
+    public void update(Person person) {
+        ldapTemplate.update(person);
+    }
 
     @Override
-	public void delete(Person person) {
-		ldapTemplate.delete(ldapTemplate.findByDn(buildDn(person), Person.class));
-	}
+    public void delete(Person person) {
+        ldapTemplate.delete(ldapTemplate.findByDn(buildDn(person), Person.class));
+    }
 
     @Override
-	public List<String> getAllPersonNames() {
+    public List<String> getAllPersonNames() {
         return ldapTemplate.search(query()
                 .attributes("cn")
                 .where("objectclass").is("person"),
@@ -67,31 +69,36 @@ public class OdmPersonDaoImpl implements PersonDao {
     }
 
     @Override
-	public List<Person> findAll() {
+    public List<Person> findAll() {
         return ldapTemplate.findAll(Person.class);
-	}
+    }
 
     @Override
-	public Person findByPrimaryKey(String country, String company, String fullname) {
-		LdapName dn = buildDn(country, company, fullname);
-        Person person = ldapTemplate.findByDn(dn, Person.class);
+    public Person findByPrimaryKey(String country, String company, String fullname) {
+        SearchControls controls = new SearchControls();
+        controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+        controls.setReturningAttributes(new String[]{"*","+"});
 
-        return person;
-	}
+        LdapName dn = buildDn(country, company, fullname);
+//        Person person = ldapTemplate.findByDn(dn, Person.class);
+        List<Person> people = ldapTemplate.findAll(dn, controls, Person.class);
 
-	private LdapName buildDn(Person person) {
-		return buildDn(person.getCountry(), person.getCompany(), person.getFullName());
-	}
+        return people.isEmpty() ? null : people.iterator().next();
+    }
 
-	private LdapName buildDn(String country, String company, String fullname) {
+    private LdapName buildDn(Person person) {
+        return buildDn(person.getCountry(), person.getCompany(), person.getFullName());
+    }
+
+    private LdapName buildDn(String country, String company, String fullname) {
         return LdapNameBuilder.newInstance()
                 .add("c", country)
                 .add("ou", company)
                 .add("cn", fullname)
                 .build();
-	}
+    }
 
-	public void setLdapTemplate(LdapTemplate ldapTemplate) {
-		this.ldapTemplate = ldapTemplate;
-	}
+    public void setLdapTemplate(LdapTemplate ldapTemplate) {
+        this.ldapTemplate = ldapTemplate;
+    }
 }

@@ -128,5 +128,6 @@ public class PersonDaoSampleIntegrationTest extends
         assertEquals("+46 555-123456", result.getPhone());
         assertEquals("Some Person", result.getFullName());
         assertEquals("Person", result.getLastName());
+        assertEquals("20031127062446Z", result.getModifyTimestamp());
     }
 }
